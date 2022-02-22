@@ -1,0 +1,14 @@
+source /opt/ioa/Modules/default/init/bash
+module load intel-fortran
+module load intel/2018u3
+module load openmpi/intel/2018u3/4.0.2
+
+rascas_dir=/home/yy503/Desktop/rascas
+$rascas_dir/f90_Lya/CreateDomDump Lya/001.CDD.conf
+
+$rascas_dir/f90_Lya/LyaPhotonsFromGas Lya/001.ppic_col.conf
+#$rascas_dir/f90_Lya/LyaPhotonsFromGas Lya/001.ppic_rec.conf
+
+$rascas_dir/f90_Lya/rascas-serial Lya/RaS_col.conf
+#$rascas_dir/f90_Lya/rascas-serial Lya/RaS_rec.conf
+
