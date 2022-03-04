@@ -2,7 +2,7 @@
 
 from operator import index
 import sys
-sys.path.append('/home/yy503/Desktop/rascas/py')
+sys.path.append('/home/yy503/Desktop/rascas-sdpo/py')
 import jphot as jp
 import lya_utils as lya
 import numpy as np
@@ -38,17 +38,19 @@ f_H = 0.76
 f_He = 0.24
 
 sim_name = sys.argv[1]
-op_idx_a = [51, 52, 53]
+idx_min = int( sys.argv[2] )
+idx_max = int( sys.argv[3] )
+op_idx_a = np.arange(idx_min, idx_max)
 
 nvar = pu.variable_info(sim_name)
-w = np.linspace(-6,6, 100)
+w = np.linspace(-size/2, size/2, 100)
 anal_flag=['HI']
 
 for op_idx in op_idx_a:
     emi_dir = '/data/ERCblackholes3/yuxuan/emi_line/%s/output000%s'%(sim_name, op_idx)
     dat_dir = '/data/ERCblackholes3/yuxuan/dwarf_data/post_processing/%s/output_000%s'%(sim_name, op_idx)
     # read cube: axis0 z axis1 y axis0 x
-    lfac, dfac, tfac, redshift, redshiftnum, main_halo_pos, main_halo_vel = pu.get_sim_info(sim_name, op_idx )
+    lfac, dfac, tfac, redshift, redshiftnum, main_halo_pos, main_halo_vel, gas_halo_pos, gas_halo_vel = pu.get_sim_info(sim_name, op_idx )
     for i in [1,nvar-2]:
         filename='/data/ERCblackholes3/yuxuan/dwarf_data/post_processing/%s/\
 output_000%s/%s_cube_%d.dat'%(sim_name, op_idx, cube_region, i)
@@ -66,10 +68,10 @@ output_000%s/%s_cube_%d.dat'%(sim_name, op_idx, cube_region, i)
 
 
     nx, ny, nz=np.shape(cube_nHI)
-    x_3d,y_3d,z_3d = np.meshgrid(np.linspace(-6,6,nx),np.linspace(-6,6,ny),np.linspace(-6,6,nz), indexing='ij')
+    x_3d,y_3d,z_3d = np.meshgrid(np.linspace(-size/2,size/2,nx),np.linspace(-size/2,size/2,ny),np.linspace(-size/2,size/2,nz), indexing='ij')
     
     LOS_a = np.loadtxt('%s/LOS.txt'%emi_dir)
-    for i, LOS in enumerate(LOS_a):
+    for i, LOS in enumerate(LOS_a ):
         print('generating projection map for LOS %d'%i)
         wx, wy = pu.cal_projection_pos(x_3d, y_3d, z_3d, LOS )
         if 'HI' in anal_flag:

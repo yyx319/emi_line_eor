@@ -1,5 +1,7 @@
+from cProfile import label
 from lib2to3.pygram import python_grammar_no_print_statement
 import os
+import re
 import sys
 import numpy as np 
 import matplotlib.pyplot as plt 
@@ -12,6 +14,7 @@ import NewHaloMakerRoutines as hmr
 sys.path.append('/home/yy503/Desktop/simulation_code/ramses_tools/MakeMovies')
 import movie_utils
 from support_functions import *
+from scipy import signal
 
 cm2pc = (u.cm).to(u.pc)
 cm2kpc = (u.cm).to(u.kpc)
@@ -23,6 +26,24 @@ g2Msun = (u.g).to(u.M_sun)
 
 dat_dir='/data/ERCblackholes3/yuxuan/dwarf_data'
 sim_dir = '/data/ERCblackholes2/smartin/Dwarf1'
+
+
+def rebin(a, *args):
+    '''rebin ndarray data into a smaller ndarray of the same rank whose dimensions
+    are factors of the original dimensions. eg. An array with 6 columns and 4 rows
+    can be reduced to have 6,3,2 or 1 columns and 4,2 or 1 rows.
+    example usages:
+    >>> a=rand(6,4); b=rebin(a,3,2)
+    >>> a=rand(6); b=rebin(a,2)
+    '''
+    shape = a.shape
+    lenShape = len(shape)
+    factor = np.array(np.asarray(shape)/np.asarray(args), dtype=int)
+    evList = ['a.reshape('] + \
+             ['args[%d],factor[%d],' % (i, i) for i in range(lenShape)] + \
+             [')'] + ['.mean(%d)' % (i+1) for i in range(lenShape)]
+    #print(''.join(evList))
+    return eval(''.join(evList))
 
 def variable_info(sim_name):
     nvar = 7 # number of basic variable: density, vx, vy, vz, P_th, pass_sca1, pass_sca2
@@ -49,7 +70,7 @@ def LOS2angle(LOS_a):
 def cal_projection_pos(x_mesh, y_mesh, z_mesh, LOS):
     # projection map along arbitrary LOS
 
-    #unit vector for the axis, defined in the same way as kobs_perp_1,2 in module_mock.f90, 
+    # unit vector for the axis, defined in the same way as kobs_perp_1,2 in module_mock.f90, 
     # k_perp1 = k_obs cross xhat then normalize to unit; k_perp2 = kobs cross k_perp1
     if np.array_equiv(LOS, [1,0,0]): 
         k_perp1=[1,0,0]
@@ -65,6 +86,15 @@ def cal_projection_pos(x_mesh, y_mesh, z_mesh, LOS):
     wy = x_mesh*k_perp2[0]+ y_mesh*k_perp2[1]+ z_mesh*k_perp2[2]
     return wx, wy
 
+def cal_proj_vel(vx_mesh, vy_mesh, vz_mesh, LOS):
+    v_los = vx_mesh*LOS[0] + vy_mesh*LOS[1] + vz_mesh*LOS[2]
+    return v_los
+
+
+
+
+
+
 
 def cal_sph_angles(x_mesh, y_mesh, z_mesh, center):
     # given the center, calculate two angles in spherical coordinate of cells. 
@@ -75,6 +105,35 @@ def cal_sph_angles(x_mesh, y_mesh, z_mesh, center):
     theta_mesh = np.arctan( np.sqrt( x_mesh**2+y_mesh**2) / z_mesh )
     phi_mesh = np.arctan2( y_mesh, x_mesh )
     return r_mesh, theta_mesh, phi_mesh
+
+
+###########################
+# analyze on the profiles #
+###########################
+
+def iden_peak(v, flux, err):
+    # preselect the frequency range in the spectra so that this function do not identify any peaks 
+    # from the noise far from the line wings
+    plt.figure()
+    
+    flux[flux<3*err]=0
+    plt.plot(v, flux)
+    flux = rebin( flux, 50)
+    v = rebin( v, 50)
+    window = signal.windows.gaussian( len(flux), std= len(flux)/50 )
+    
+    filtered = signal.fftconvolve(flux, window, mode='same')
+    filtered = np.average(flux)/np.average(filtered) * filtered
+    
+
+    peakidx = signal.find_peaks(filtered )[0]
+    npk = len(peakidx)
+    plt.plot(v, flux)
+    plt.plot(v, filtered, label='npk=%d'%npk)
+    plt.legend()
+
+    return peakidx
+
 
 ##################################
 # get basic info from simulation #
@@ -99,6 +158,13 @@ def get_sim_info(sim_name, op_idx):
     gas_halo_pos = gas_halo_pos_a[idx]
     gas_halo_vel = gas_halo_vel_a[idx]
 
+    f = open('%s/post_processing/%s/track_000%s'%(dat_dir, sim_name, op_idx), "r")
+    f.readline()
+    x_halo = float( f.readline()[13:23] )
+    y_halo = float( f.readline()[13:23] )
+    z_halo = float( f.readline()[13:23] )
+    track_pos_halo = np.array([x_halo, y_halo, z_halo])
+
     hydro_file_descriptor = '%s/%s/output_000%s/hydro_file_descriptor.txt'%(sim_dir, sim_name, op_idx)
     with open(hydro_file_descriptor, 'r') as f:
         print(f.read())
@@ -106,7 +172,7 @@ def get_sim_info(sim_name, op_idx):
     info_file = '%s/%s/output_000%s/info_000%s.txt'%(sim_dir, sim_name, op_idx, op_idx)
     lfac, dfac, tfac, redshift, redshiftnum = movie_utils.read_infofile(info_file)
 
-    return lfac, dfac, tfac, redshift, redshiftnum, main_halo_pos, main_halo_vel, gas_halo_pos, gas_halo_vel
+    return lfac, dfac, tfac, redshift, redshiftnum, main_halo_pos, main_halo_vel, track_pos_halo, gas_halo_pos, gas_halo_vel
 
 
 

@@ -3,13 +3,15 @@ module load intel-fortran/16.0.3
 module load intel/2019u5
 module load openmpi/intel/11.1/1.4.2
 
+# input parameter
 #1 sim_name: RTCRiMHD+SfFb
 #2 machine name: calx089, 151, 156
+#3 RT or not: T F
 
 run=parallel
-for snapnum in {41..46..1}
+for snapnum in {50..50..1}
   do
-    python gen_conf_file.py $1 $snapnum
+    python gen_conf_file.py $1 $snapnum $3
 
     echo $1
     echo $snapnum

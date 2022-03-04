@@ -37,6 +37,12 @@ def write_params_CDD(file, dat_dir, sim_dir, snapnum, main_halo_pos, rsp, overwr
     f.write('f_ion = 1.0000000000000000e-02 \n')       
     f.write('Zref = 5.0000000000000001e-03 \n')
     f.write('gas_overwrite = %s \n'%overwrite) 
+    f.write('fix_nhi   = 0.0d0\n')
+    f.write('fix_vth   = 0.0d4\n')
+    f.write('fix_vel   = 0.0d0\n')
+    f.write('fix_box_size_cm = 3e21 \n' )
+    f.write('f_ion = 1.0000000000000000e-02 \n') 
+    f.write('Zref = 5.0000000000000001e-03 \n')
     f.write('verbose = T \n')
 
     f.write('[ramses] \n')                               
@@ -178,7 +184,7 @@ def write_params_Ra(file, dat_dir, PhotICFile,outputFile, ndir, mock_name, overw
     f.write('# overwrite parameters\n')
     f.write('gas_overwrite       = %s\n'%overwrite)
     f.write('fix_nhi   = 0.0d0\n')
-    f.write('fix_vth   = 1.0d4\n')
+    f.write('fix_vth   = 0.0d4\n')
     f.write('fix_vel   = 0.0d0\n')
     f.write('fix_box_size_cm = 3e21 \n' )
     f.write('f_ion = 1.0000000000000000e-02 \n') 
@@ -201,14 +207,42 @@ def write_params_Ra(file, dat_dir, PhotICFile,outputFile, ndir, mock_name, overw
     f.write('mock_outputfilename = %s/%s \n'%(dat_dir, mock_name) )
     f.close()
 
-def generate_LOS_a(ndir=100):
+def generate_LOS_a(ndir=100, hlpix=False):
     #seed(1)
-    LOS_a = [ [1., 0., 0.], [0., 1., 0.], [0., 0., 1.]] # 3 axis
-    for i in range(ndir-3):
-        theta = random()*np.pi
-        phi = random()*2.*np.pi
-        LOS_a.append([ np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta) ] )
-    LOS_a = np.array(LOS_a)
+    if hlpix==False:
+        LOS_a = [ [1., 0., 0.], [0., 1., 0.], [0., 0., 1.]] # 3 axis
+        for i in range(ndir-3):
+            theta = random()*np.pi
+            phi = random()*2.*np.pi
+            LOS_a.append([ np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta) ] )
+        LOS_a = np.array(LOS_a)
+
+    if hlpix==True:
+        LOS_a = np.zeros( (48, 3 ) )
+        theta_a = np.array([0.41113786, 0.41113786, 0.41113786, 0.41113786, 0.84106867,
+        0.84106867, 0.84106867, 0.84106867, 0.84106867, 0.84106867,
+        0.84106867, 0.84106867, 1.23095942, 1.23095942, 1.23095942,
+        1.23095942, 1.23095942, 1.23095942, 1.23095942, 1.23095942,
+        1.57079633, 1.57079633, 1.57079633, 1.57079633, 1.57079633,
+        1.57079633, 1.57079633, 1.57079633, 1.91063324, 1.91063324,
+        1.91063324, 1.91063324, 1.91063324, 1.91063324, 1.91063324,
+        1.91063324, 2.30052398, 2.30052398, 2.30052398, 2.30052398,
+        2.30052398, 2.30052398, 2.30052398, 2.30052398, 2.73045479,
+        2.73045479, 2.73045479, 2.73045479])
+        phi_a = np.array([0.78539816, 2.35619449, 3.92699082, 5.49778714, 0.39269908,
+        1.17809725, 1.96349541, 2.74889357, 3.53429174, 4.3196899 ,
+        5.10508806, 5.89048623, 0.        , 0.78539816, 1.57079633,
+        2.35619449, 3.14159265, 3.92699082, 4.71238898, 5.49778714,
+        0.39269908, 1.17809725, 1.96349541, 2.74889357, 3.53429174,
+        4.3196899 , 5.10508806, 5.89048623, 0.        , 0.78539816,
+        1.57079633, 2.35619449, 3.14159265, 3.92699082, 4.71238898,
+        5.49778714, 0.39269908, 1.17809725, 1.96349541, 2.74889357,
+        3.53429174, 4.3196899 , 5.10508806, 5.89048623, 0.78539816,
+        2.35619449, 3.92699082, 5.49778714])
+        LOS_a[:,0] = np.sin(theta_a)*np.cos(phi_a) 
+        LOS_a[:,1] = np.sin(theta_a)*np.sin(phi_a) 
+        LOS_a[:,2] = np.cos(theta_a)
+    np.savetxt('%s/LOS.txt'%dat_dir, LOS_a) 
     return LOS_a
 
 def write_mockparams(file, LOS_a, main_halo_pos, flux_aper = 1.5228222e-02, 
@@ -229,6 +263,8 @@ def write_mockparams(file, LOS_a, main_halo_pos, flux_aper = 1.5228222e-02,
 
 sim_name=sys.argv[1]
 snapnum=sys.argv[2]
+RT=sys.argv[3]
+
 print(sim_name, snapnum)
 op_idx_a, main_halo_pos_a, main_halo_vel_a, gas_halo_pos_a, gas_halo_vel_a = pu.get_halo_info(sim_name)
 lfac, dfac, tfac, redshift, redshiftnum, main_halo_pos, main_halo_vel, gas_halo_pos, gas_halo_vel = pu.get_sim_info(sim_name, snapnum)
@@ -245,25 +281,38 @@ dat_dir = '/data/ERCblackholes3/yuxuan/emi_line/%s/output000%s'%(sim_name, snapn
 os.makedirs('/data/ERCblackholes3/yuxuan/emi_line/%s'%sim_name, exist_ok = True)
 os.makedirs(dat_dir, exist_ok = True)
 
-ndir=9
-LOS_a = generate_LOS_a(ndir=ndir)
-np.savetxt('%s/LOS.txt'%dat_dir, LOS_a) 
+ndir=48
+hlpix=True
+LOS_a = generate_LOS_a(ndir=ndir, hlpix=hlpix)
 
 
 
-write_params_CDD('Lya/CDD.conf', dat_dir, sim_dir, snapnum, gas_halo_pos, rsp, overwrite='F')
+if RT=='F':
+    overwrite='T'
+    mn_pfx = 'intr'
+elif RT=='T':
+    overwrite='F'
+    mn_pfx = ''
+
+
+write_params_CDD('Lya/CDD.conf', dat_dir, sim_dir, snapnum, gas_halo_pos, rsp, overwrite=overwrite)
 write_params_LyaPhotonFromGas('Lya/ppic_col.conf', dat_dir, sim_dir, snapnum, gas_halo_pos, rsp, nphotons, rec='False', col='True')
 
 write_mockparams('Lya/mockparams.conf' , LOS_a, gas_halo_pos, flux_aper = 2*rsp, 
                     spec_npix=1000, spec_aperture = 2*rsp, spec_lmin=1210., spec_lmax=1222.,
                     image_npix=1000, image_side= 2*rsp,
                     cube_lbda_npix=0, cube_image_npix=0, cube_lmin=0, cube_lmax=0, cube_side=0 )
-write_params_Ra('Lya/RaS_col.conf', dat_dir, 'col.IC', 'col.res', ndir=ndir, mock_name='col', overwrite='F')
+
+
+
+write_params_Ra('Lya/RaS_col.conf', dat_dir, 'col.IC', 'col.res', ndir=ndir, mock_name=mn_pfx+'col', overwrite=overwrite)
 
 write_params_LyaPhotonFromGas('Lya/ppic_rec.conf', dat_dir, sim_dir, snapnum, gas_halo_pos, rsp, nphotons, rec='True', col='False')
-write_params_Ra('Lya/RaS_rec.conf', dat_dir, 'rec.IC', 'rec.res', ndir=ndir, mock_name='rec', overwrite='F')
+write_params_Ra('Lya/RaS_rec.conf', dat_dir, 'rec.IC', 'rec.res', ndir=ndir, mock_name=mn_pfx+'rec', overwrite=overwrite)
 
-print('conf file generated')
+print('#######################/n')
+print('# conf file generated #/n')
+print('#######################')
 
 ''' 
 # generate PhotICs around 1190.A and run RASCAS

@@ -19,7 +19,7 @@ s2Gyr = (u.s).to(u.Gyr)
 g2Msun = (u.g).to(u.M_sun)
 
 
-dat_dir = '/data/ERCblackholes2/smartin/Dwarf1/'
+dat_dir = '/data/ERCblackholes2/smartin/Dwarf1'
 
 pp_dir = '/data/ERCblackholes3/yuxuan/dwarf_data/post_processing'
 prj_dir = '/home/yy503/Desktop/emi_line_eor'
@@ -47,11 +47,11 @@ def extract_main_halo_pos(sim_name, parttype):
 
 	#isim = sim_name_a1.index(sim_name)
 	#op_idx_final = int( op_idx_final_a1[isim] )
-	op_idx_final=69
+	op_idx_final=54
 	op_idx_start=30
     # save op_idx_a and main halo position
-	op_idx_a = np.loadtxt('%s/post_processing/%s/op_index.txt'%(dat_dir, sim_name) )
-	main_halo_pos_a = np.loadtxt('%s/post_processing/%s/main_halo_pos.txt'%(dat_dir, sim_name) )
+	op_idx_a = np.loadtxt('%s/%s/op_index.txt'%(pp_dir, sim_name) )
+	main_halo_pos_a = np.loadtxt('%s/%s/main_halo_pos.txt'%(pp_dir, sim_name) )
 
 	for i, op_idx in enumerate( np.arange(op_idx_final, op_idx_start, -1) ):
 		op_idx = int(op_idx); print(op_idx)
@@ -71,7 +71,7 @@ def extract_main_halo_pos(sim_name, parttype):
 
 		
 
-		all_halos = hmr.read_halos(ID=op_idx,read_route=dat_dir+sim_name,
+		all_halos = hmr.read_halos(ID=op_idx,read_route=dat_dir+'/'+sim_name,
 									parttype=parttype, verbose=1, xzoom=xzoom, rzoom=rzoom )
 
 		halo_mass = []
